@@ -1,0 +1,1 @@
+Para separar os dados da interface podendo alterar os textos sem precisar modificar o componente visual.

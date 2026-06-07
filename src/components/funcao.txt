@@ -1,0 +1,1 @@
+Esta pasta serve para a reutilizar partes do codigo em outras cenas sem ter que reescrever codigos

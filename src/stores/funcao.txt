@@ -1,0 +1,1 @@
+É uma forma de compartilhar dados entre componentes no Svelte.
