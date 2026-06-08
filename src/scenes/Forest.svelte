@@ -1,112 +1,237 @@
 <script lang="ts">
-    import forest from '../assets/cenarios/forest.png';
-	
+	import { onMount } from 'svelte';
+
+	import forest from '../assets/cenarios/forest.png';
+
+	import cutscenePortal1 from '../assets/cutscene/cutscene_portal1.png';
+	import cutscenePortal2 from '../assets/cutscene/cutscene_portal2.png';
+	import cutscenePortal3 from '../assets/cutscene/cutscene_portal3.png';
+	import cutscenePortal4 from '../assets/cutscene/cutscene_portal4.png';
+	import cutscenePortal5 from '../assets/cutscene/cutscene_portal5.png';
+	import cutscenePortal6 from '../assets/cutscene/cutscene_portal6.png';
+
+    import lucasIdleRight from '../assets/personagens/lucas_idle_right1.png';
+    import lucasIdleLeft from '../assets/personagens/lucas_idle_left1.png';
+
+    import lucasWalkRight1 from '../assets/personagens/lucas_walk_right1.png';
+    import lucasWalkRight2 from '../assets/personagens/lucas_walk_right2.png';
+
+    import lucasWalkLeft1 from '../assets/personagens/lucas_walk_left1.png';
+    import lucasWalkLeft2 from '../assets/personagens/lucas_walk_left2.png';
+
+	import cutsceneRescue1 from '../assets/cutscene/cutscene_rescue1.png';
+	import cutsceneRescue2 from '../assets/cutscene/cutscene_rescue2.png';
+	import cutsceneRescue3 from '../assets/cutscene/cutscene_rescue3.png';
+
 	import redIdleRight from '../assets/personagens/red_idle_right1.png';
-    import redIdleLeft from '../assets/personagens/red_idle_left1.png';
+	import redIdleLeft from '../assets/personagens/red_idle_left1.png';
 
-    import redIdleRight2 from '../assets/personagens/red_idle_right2.png';
-    import redIdleLeft2 from '../assets/personagens/red_idle_left2.png';
+	import redWalkRight1 from '../assets/personagens/red_walk_right1.png';
+	import redWalkRight2 from '../assets/personagens/red_walk_right2.png';
 
-    import redWalkRight1 from '../assets/personagens/red_walk_right1.png';
-    import redWalkRight2 from '../assets/personagens/red_walk_right2.png';
-
-    import redWalkLeft1 from '../assets/personagens/red_walk_left1.png';
-    import redWalkLeft2 from '../assets/personagens/red_walk_left2.png';
+	import redWalkLeft1 from '../assets/personagens/red_walk_left1.png';
+	import redWalkLeft2 from '../assets/personagens/red_walk_left2.png';
 
 	import { player } from '../stores/player';
-    import { cameraX } from '../stores/camera';
-    import { onMount } from 'svelte';
+	import { cameraX } from '../stores/camera';
 
-function handleKeyDown(event: KeyboardEvent) {
-	if (event.key === 'ArrowRight') {
-		player.update((p) => ({
-			...p,
-			x: p.x + p.speed,
-			direction: 'right',
-			moving: true
-		}));
+	const portalCutscenes: string[] = [
+		cutscenePortal1,
+		cutscenePortal2,
+		cutscenePortal3,
+		cutscenePortal4,
+		cutscenePortal5,
+		cutscenePortal6
+	];
+
+	const rescueCutscenes: string[] = [
+		cutsceneRescue1,
+		cutsceneRescue2,
+		cutsceneRescue3
+	];
+
+    let lucasVisible = false;
+    let lucasSprite = lucasIdleRight;
+
+	let portalTriggered = false;
+	let canMove = true;
+
+	let showPortalCutscene = false;
+	let currentPortalCutscene = 0;
+
+	let showMinigame = false;
+	let rescuePower = 0;
+	const maxRescuePower = 20;
+
+	let showRescueCutscene = false;
+	let currentRescueCutscene = 0;
+
+	let currentSprite = redIdleRight;
+	let frame = 0;
+
+	$: {
+		if ($player.x >= 1500 && !portalTriggered) {
+			portalTriggered = true;
+			canMove = false;
+
+			player.update((p) => ({
+				...p,
+				moving: false
+			}));
+
+			showPortalCutscene = true;
+			currentPortalCutscene = 0;
+			playPortalCutscene();
+		}
 	}
 
-	if (event.key === 'ArrowLeft') {
-		player.update((p) => ({
-			...p,
-			x: Math.max(10, p.x - p.speed),
-			direction: 'left',
-			moving: true
-		}));
+	$: {
+		const centerScreen = 640;
+		const newCameraX = Math.max(0, $player.x - centerScreen);
+		cameraX.set(newCameraX);
 	}
-}
 
-function handleKeyUp() {
-	player.update((p) => ({
-		...p,
-		moving: false
+	function playPortalCutscene() {
+		const interval = setInterval(() => {
+            
+			if (currentPortalCutscene < portalCutscenes.length - 1) {
+				currentPortalCutscene += 1;
+			} else {
+				clearInterval(interval);
+				showPortalCutscene = false;
+				showMinigame = true;
+			}
+		}, 900);
+	}
+
+	function playRescueCutscene() {
+		showRescueCutscene = true;
+		currentRescueCutscene = 0;
+
+		const interval = setInterval(() => {
+			if (currentRescueCutscene < rescueCutscenes.length - 1) {
+				currentRescueCutscene += 1;
+			} else {
+	        clearInterval(interval);
+	        showRescueCutscene = false;
+
+	         player.update((p) => ({
+		    ...p,
+		    x: 2700,
+		    direction: 'right',
+		    moving: false
 	}));
+
+    lucasVisible = true;
+    canMove = true;
+
 }
+		}, 900);
+	}
 
-onMount(() => {
-	window.addEventListener('keydown', handleKeyDown);
-	window.addEventListener('keyup', handleKeyUp);
+	function handleKeyDown(event: KeyboardEvent) {
+		if (showMinigame && event.key.toLowerCase() === 'a') {
+			rescuePower += 1;
 
-	return () => {
-		window.removeEventListener('keydown', handleKeyDown);
-		window.removeEventListener('keyup', handleKeyUp);
-	};
-});
-    $: {
-	const centerScreen = 640; // metade de 1280
+			if (rescuePower >= maxRescuePower) {
+				showMinigame = false;
+				playRescueCutscene();
+			}
 
-	const newCameraX = Math.max(
-		0,
-		$player.x - centerScreen
-	);
+			return;
+		}
 
-	cameraX.set(newCameraX);
-}
+		if (!canMove) return;
 
-let currentSprite = redIdleRight;
-let frame = 0;
+		if (event.key === 'ArrowRight') {
+			player.update((p) => ({
+				...p,
+				x: p.x + p.speed,
+				direction: 'right',
+				moving: true
+			}));
+		}
 
-setInterval(() => {
+		if (event.key === 'ArrowLeft') {
+			player.update((p) => ({
+				...p,
+				x: Math.max(10, p.x - p.speed),
+				direction: 'left',
+				moving: true
+			}));
+		}
+	}
+
+	function handleKeyUp() {
+		player.update((p) => ({
+			...p,
+			moving: false
+		}));
+	}
+
+	onMount(() => {
+		window.addEventListener('keydown', handleKeyDown);
+		window.addEventListener('keyup', handleKeyUp);
+
+		const animationInterval = setInterval(() => {
 	frame = frame === 0 ? 1 : 0;
 
 	player.update((p) => {
+
 		if (!p.moving) {
+
 			currentSprite =
 				p.direction === 'right'
 					? redIdleRight
 					: redIdleLeft;
 
+			lucasSprite =
+				p.direction === 'right'
+					? lucasIdleRight
+					: lucasIdleLeft;
+
 			return p;
 		}
 
 		if (p.direction === 'right') {
+
 			currentSprite =
 				frame === 0
 					? redWalkRight1
 					: redWalkRight2;
+
+			lucasSprite =
+				frame === 0
+					? lucasWalkRight1
+					: lucasWalkRight2;
+
 		} else {
+
 			currentSprite =
 				frame === 0
 					? redWalkLeft1
 					: redWalkLeft2;
+
+			lucasSprite =
+				frame === 0
+					? lucasWalkLeft1
+					: lucasWalkLeft2;
 		}
 
 		return p;
 	});
 }, 200);
+		return () => {
+			window.removeEventListener('keydown', handleKeyDown);
+			window.removeEventListener('keyup', handleKeyUp);
+			clearInterval(animationInterval);
+		};
+	});
 </script>
+
 <div class="game">
-	<div
-	class="world"
-	style="transform:  translateX(-{$cameraX}px);"
-	
->
-		<img
-			class="forest"
-			src={forest}
-			alt="Forest"
-		/>
+	<div class="world" style="transform: translateX(-{$cameraX}px);">
+		<img class="forest" src={forest} alt="Forest" />
 
 		<img
 			class="player"
@@ -114,49 +239,154 @@ setInterval(() => {
 			alt="Red"
 			style="
 				left: {$player.x}px;
-                top: {$player.y}px;
+				top: {$player.y}px;
 			"
 		/>
-
+        {#if lucasVisible}
+	<img
+		class="lucas"
+		src={lucasSprite}
+		alt="Lucas"
+		style="
+			left: {$player.x - 140}px;
+			top: {$player.y}px;
+		"
+	/>
+         {/if}
 	</div>
-</div>
 
+	{#if showPortalCutscene}
+		<div class="cutscene-screen">
+			<img
+				class="cutscene-image"
+				src={portalCutscenes[currentPortalCutscene]}
+				alt="Cutscene do portal"
+			/>
+		</div>
+	{/if}
+
+	{#if showMinigame}
+		<div class="minigame-screen">
+			<h1>AJUDE LUCAS!</h1>
+
+			<div class="bar">
+				<div
+					class="bar-fill"
+					style="width: {(rescuePower / maxRescuePower) * 100}%;"
+				></div>
+			</div>
+
+			<div class="key">A</div>
+			<p>Pressione A repetidamente</p>
+		</div>
+	{/if}
+
+	{#if showRescueCutscene}
+		<div class="cutscene-screen">
+			<img
+				class="cutscene-image"
+				src={rescueCutscenes[currentRescueCutscene]}
+				alt="Cutscene do resgate"
+			/>
+		</div>
+	{/if}
+</div>
 
 <style>
 	.game {
-	width: 1280px;
-	height: 720px;
+		width: 1280px;
+		height: 720px;
+		overflow: hidden;
+		position: relative;
+		border: 2px solid black;
+		background: black;
+	}
 
-	overflow: hidden;
-	position: relative;
+	.world {
+		position: relative;
+		width: 4000px;
+		height: 720px;
+	}
 
-	border: 2px solid black;
-}
+	.forest {
+		image-rendering: pixelated;
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 4000px;
+		height: 723px;
+	}
 
-.world {
-	position: relative;
+	.player {
+		image-rendering: pixelated;
+		position: absolute;
+		width: 160px;
+	}
 
-	width: 4000px;
-	height: 720px;
-}
+	.cutscene-screen,
+	.minigame-screen {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 1280px;
+		height: 720px;
+		background: black;
+		z-index: 10;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
 
-.forest {
-    image-rendering: pixelated;
+	.cutscene-image {
+		width: 1280px;
+		height: 720px;
+		object-fit: cover;
+		image-rendering: pixelated;
+	}
+
+	.minigame-screen {
+		flex-direction: column;
+		color: black;
+		background: white;
+		font-family: Arial, sans-serif;
+	}
+
+	.minigame-screen h1 {
+		font-size: 48px;
+		margin-bottom: 40px;
+	}
+
+	.bar {
+		width: 500px;
+		height: 35px;
+		border: 4px solid black;
+		margin-bottom: 30px;
+	}
+
+	.bar-fill {
+		height: 100%;
+		background: black;
+	}
+
+	.key {
+		width: 90px;
+		height: 90px;
+		border: 5px solid black;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 50px;
+		font-weight: bold;
+		margin-bottom: 15px;
+	}
+
+	p {
+		font-size: 24px;
+	}
+
+    .lucas {
+	image-rendering: pixelated;
 	position: absolute;
-
-	left: 0;
-	top: 0;
-
-	width: 4000px;
-	height: 723px;
-
-	object-fit: fill;
-}
-
-.player {
-    image-rendering: pixelated;
-	position: absolute;
-
 	width: 160px;
 }
 </style>
