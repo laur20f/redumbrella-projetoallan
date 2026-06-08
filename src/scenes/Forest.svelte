@@ -68,7 +68,39 @@
 
 	let currentSprite = redIdleRight;
 	let frame = 0;
+    
+    let lucasPosition: 'front' | 'back' = 'front';
 
+    let showFirstDialog = false;
+
+    let dialogIndex = 0;
+
+    type Speaker = 'Red' | 'Lucas';
+
+type DialogLine = {
+	speaker: Speaker;
+	text: string;
+};
+
+const firstDialog: DialogLine[] = [
+	{ speaker: 'Red', text: 'Você está bem?' },
+	{ speaker: 'Lucas', text: 'Acho que sim...' },
+	{ speaker: 'Lucas', text: 'Onde eu estou?' },
+	{ speaker: 'Red', text: 'Eu te tirei daquele portal.' },
+	{ speaker: 'Lucas', text: 'Obrigado.' }
+];
+
+function getDialogLeft() {
+	const currentLine = firstDialog[dialogIndex];
+
+	if (currentLine.speaker === 'Red') {
+		return $player.x + 20;
+	}
+
+	return lucasPosition === 'front'
+		? $player.x + 160
+		: $player.x - 120;
+}
 	$: {
 		if ($player.x >= 1500 && !portalTriggered) {
 			portalTriggered = true;
@@ -122,8 +154,13 @@
 		    moving: false
 	}));
 
-    lucasVisible = true;
-    canMove = true;
+   lucasVisible = true;
+
+   lucasPosition = 'front';
+
+   showFirstDialog = true;
+
+   canMove = false;
 
 }
 		}, 900);
@@ -185,10 +222,17 @@
 					? redIdleRight
 					: redIdleLeft;
 
-			lucasSprite =
-				p.direction === 'right'
-					? lucasIdleRight
-					: lucasIdleLeft;
+			if (lucasPosition === 'front') {
+
+	lucasSprite = lucasIdleLeft;
+
+} else {
+
+	lucasSprite =
+		p.direction === 'right'
+			? lucasIdleRight
+			: lucasIdleLeft;
+}
 
 			return p;
 		}
@@ -227,6 +271,24 @@
 			clearInterval(animationInterval);
 		};
 	});
+
+    function nextDialog() {
+
+	if (dialogIndex < firstDialog.length - 1) {
+
+		dialogIndex++;
+
+	} else {
+
+		showFirstDialog = false;
+
+		lucasPosition = 'back';
+
+		canMove = true;
+
+		dialogIndex = 0;
+	}
+}
 </script>
 
 <div class="game">
@@ -243,16 +305,36 @@
 			"
 		/>
         {#if lucasVisible}
+        {#if showFirstDialog}
+	<div
+		class="speech-box"
+		style="
+			left: {getDialogLeft()}px;
+			top: {$player.y - 120}px;
+		"
+	>
+		<div class="speaker-name">
+			{firstDialog[dialogIndex].speaker}
+		</div>
+
+		<div class="speech-text">
+			{firstDialog[dialogIndex].text}
+		</div>
+
+		<button on:click={nextDialog}>▶</button>
+	</div>
+{/if}
 	<img
 		class="lucas"
 		src={lucasSprite}
 		alt="Lucas"
 		style="
-			left: {$player.x - 140}px;
+			left: {lucasPosition === 'front'? $player.x + 140: $player.x - 140}px;
 			top: {$player.y}px;
 		"
 	/>
          {/if}
+
 	</div>
 
 	{#if showPortalCutscene}
@@ -388,5 +470,49 @@
 	image-rendering: pixelated;
 	position: absolute;
 	width: 160px;
+}
+.speech-box {
+	position: absolute;
+
+	width: 260px;
+	min-height: 80px;
+
+	background: rgba(0, 0, 0, 0.85);
+	border: 3px solid white;
+	border-radius: 10px;
+
+	color: white;
+	padding: 10px;
+
+	z-index: 5;
+}
+
+.speaker-name {
+	position: absolute;
+	top: -28px;
+	left: 10px;
+
+	background: black;
+	border: 2px solid white;
+	padding: 3px 10px;
+
+	font-size: 16px;
+	font-weight: bold;
+}
+
+.speech-text {
+	font-size: 18px;
+	margin-bottom: 8px;
+}
+
+.speech-box button {
+	position: absolute;
+	right: 8px;
+	bottom: 6px;
+
+	background: white;
+	color: black;
+	border: none;
+	cursor: pointer;
 }
 </style>
