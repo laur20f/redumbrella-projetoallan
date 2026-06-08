@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+    export let onBackToMenu: () => void;
 
 	import forest from '../assets/cenarios/forest.png';
 
@@ -34,6 +35,11 @@
 
 	import { player } from '../stores/player';
 	import { cameraX } from '../stores/camera';
+
+    import pt from '../data/i18n/pt';
+    import en from '../data/i18n/en';
+
+import { language } from '../stores/language';
 
 	const portalCutscenes: string[] = [
 		cutscenePortal1,
@@ -75,6 +81,51 @@
 
     let dialogIndex = 0;
 
+    let campTriggered = false;
+    let showCampDialog = false;
+    let showTimeSkip = false;
+    let showPauseMenu = false;
+    
+
+    let texts = pt;
+
+     $: texts = $language === 'pt' ? pt : en;
+
+    $: {
+	if ($player.x >= 2920 && lucasVisible && !campTriggered) {
+		campTriggered = true;
+		canMove = false;
+
+		player.update((p) => ({
+			...p,
+			moving: false
+		}));
+
+		showCampDialog = true;
+	}
+}
+function togglePause() {
+	showPauseMenu = !showPauseMenu;
+}
+
+function startCamp() {
+	showCampDialog = false;
+	showTimeSkip = true;
+
+	setTimeout(() => {
+		showTimeSkip = false;
+
+		player.update((p) => ({
+			...p,
+			x: 3550,
+			direction: 'right',
+			moving: false
+		}));
+
+		canMove = true;
+	}, 2000);
+}
+
     type Speaker = 'Red' | 'Lucas';
 
 type DialogLine = {
@@ -82,12 +133,15 @@ type DialogLine = {
 	text: string;
 };
 
-const firstDialog: DialogLine[] = [
-	{ speaker: 'Red', text: 'Você está bem?' },
-	{ speaker: 'Lucas', text: 'Acho que sim...' },
-	{ speaker: 'Lucas', text: 'Onde eu estou?' },
-	{ speaker: 'Red', text: 'Eu te tirei daquele portal.' },
-	{ speaker: 'Lucas', text: 'Obrigado.' }
+let firstDialog: DialogLine[] = [];
+
+$: firstDialog = [
+	{ speaker: 'Lucas', text: texts.dialog.lucasWhereAmI },
+	{ speaker: 'Red', text: texts.dialog.redForest },
+	{ speaker: 'Lucas', text: texts.dialog.lucasYouSavedMe },
+	{ speaker: 'Red', text: texts.dialog.redYes },
+	{ speaker: 'Lucas', text: texts.dialog.lucasNoMemory },
+	{ speaker: 'Red', text: texts.dialog.redComeWithMe }
 ];
 
 function getDialogLeft() {
@@ -118,10 +172,17 @@ function getDialogLeft() {
 	}
 
 	$: {
-		const centerScreen = 640;
-		const newCameraX = Math.max(0, $player.x - centerScreen);
-		cameraX.set(newCameraX);
-	}
+	const screenWidth = 1280;
+	const mapWidth = 4000;
+	const maxCameraX = mapWidth - screenWidth;
+
+	const newCameraX = Math.min(
+		maxCameraX,
+		Math.max(0, $player.x - screenWidth / 2)
+	);
+
+	cameraX.set(newCameraX);
+}
 
 	function playPortalCutscene() {
 		const interval = setInterval(() => {
@@ -181,14 +242,13 @@ function getDialogLeft() {
 		if (!canMove) return;
 
 		if (event.key === 'ArrowRight') {
-			player.update((p) => ({
-				...p,
-				x: p.x + p.speed,
-				direction: 'right',
-				moving: true
-			}));
-		}
-
+	player.update((p) => ({
+		...p,
+		x: Math.min(3840, p.x + p.speed),
+		direction: 'right',
+		moving: true
+	}));
+}
 		if (event.key === 'ArrowLeft') {
 			player.update((p) => ({
 				...p,
@@ -292,7 +352,48 @@ function getDialogLeft() {
 </script>
 
 <div class="game">
+<button
+	class="menu-button"
+	on:click={togglePause}
+>
+	MENU
+</button>
+{#if showPauseMenu}
+	<div class="pause-overlay">
+
+		<div class="pause-menu">
+
+			<button on:click={() => showPauseMenu = false}>
+	{texts.pause.continue}
+</button>
+
+<button on:click={onBackToMenu}>
+	{texts.pause.mainMenu}
+</button>
+
+		</div>
+
+	</div>
+{/if}
+    {#if showTimeSkip}
+	<div class="time-skip">
+		<p>{texts.timeSkip.someTimeLater}</p>
+	</div>
+{/if}
 	<div class="world" style="transform: translateX(-{$cameraX}px);">
+    {#if showCampDialog}
+	<div
+		class="speech-box"
+		style="
+			left: {$player.x + 20}px;
+			top: {$player.y - 120}px;
+		"
+	>
+		<div class="speaker-name">Red</div>
+		<div class="speech-text">{texts.dialog.redStopHere}</div>
+		<button on:click={startCamp}>▶</button>
+	</div>
+{/if}
 		<img class="forest" src={forest} alt="Forest" />
 
 		<img
@@ -349,8 +450,7 @@ function getDialogLeft() {
 
 	{#if showMinigame}
 		<div class="minigame-screen">
-			<h1>AJUDE LUCAS!</h1>
-
+			<h1>{texts.minigame.helpLucas}</h1>
 			<div class="bar">
 				<div
 					class="bar-fill"
@@ -359,7 +459,7 @@ function getDialogLeft() {
 			</div>
 
 			<div class="key">A</div>
-			<p>Pressione A repetidamente</p>
+			<p>{texts.minigame.pressA}</p>
 		</div>
 	{/if}
 
@@ -376,13 +476,17 @@ function getDialogLeft() {
 
 <style>
 	.game {
-		width: 1280px;
-		height: 720px;
-		overflow: hidden;
-		position: relative;
-		border: 2px solid black;
-		background: black;
-	}
+	width: 1280px;
+	height: 720px;
+
+	overflow: hidden;
+	position: relative;
+
+	border: 2px solid black;
+	background: black;
+
+	margin: 0 auto;
+}
 
 	.world {
 		position: relative;
@@ -514,5 +618,113 @@ function getDialogLeft() {
 	color: black;
 	border: none;
 	cursor: pointer;
+}
+.time-skip {
+	position: absolute;
+	left: 0;
+	top: 0;
+
+	width: 1280px;
+	height: 720px;
+
+	background: black;
+	color: white;
+
+	z-index: 30;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	font-size: 42px;
+	font-family: Arial, sans-serif;
+}
+.menu-button {
+	position: absolute;
+
+	top: 80px;
+	right: 25px;
+
+	width: 120px;
+	height: 42px;
+
+	z-index: 100;
+
+	font-size: 15px;
+	font-weight: bold;
+	letter-spacing: 1px;
+
+	color: #d8c8ff;
+
+	background: rgba(35, 20, 60, 0.8);
+
+	border: 2px solid #9c84d8;
+	border-radius: 8px;
+
+	cursor: pointer;
+
+	box-shadow:
+		0 0 8px rgba(156, 132, 216, 0.35),
+		inset 0 0 4px rgba(255, 255, 255, 0.1);
+
+	transition: 0.2s;
+}
+
+.menu-button:hover {
+    cursor: pointer;
+
+	transform: scale(1.05);
+
+	background: rgba(70, 40, 110, 0.95);
+
+	border-color: #d8c8ff;
+
+	color: white;
+}
+
+.pause-menu button {
+	width: 240px;
+	height: 50px;
+
+	font-size: 18px;
+	font-weight: 900;
+
+	color: white;
+
+	background: rgba(35, 20, 60, 0.85);
+
+	border: 2px solid #9c84d8;
+	border-radius: 8px;
+
+	cursor: pointer;
+
+	transition: 0.2s;
+
+    gap: 30px;
+}
+
+.pause-menu button:hover {
+	color: white;
+
+	background: rgba(70, 40, 110, 0.95);
+
+	transform: scale(1.05);
+}
+.pause-overlay {
+	position: absolute;
+
+	left: 0;
+	top: 0;
+
+	width: 1280px;
+	height: 720px;
+
+	background: rgba(0, 0, 0, 0.55);
+
+	z-index: 100;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 </style>
