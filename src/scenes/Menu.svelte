@@ -58,16 +58,16 @@
 
 	{#if screen === 'about'}
 		<div class="panel">
-			<h1>Red Umbrella</h1>
+			<h1>RED UMBRELLA</h1>
 
 			<p>
-				Ano 2048.
-				Após um desastre biológico,
-				a humanidade precisou se adaptar.
+				PROJETO DESENVOLVIDO POR ALUNOS DO 1º PERÍODO DE TECNOLOGIA EM DESENVOLVIMENTO DE SISTEMAS PARA INTERNET 
+				DO INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DE PERNAMBUCO - CAMPUS IGARASSU, NA DISCIPLINA DE PROGRAMAÇÃO IMPERATIVA MINISTRADA
+				PELO PROFESSOR ALLAN LIMA.
 			</p>
 
 			<p>
-				Desenvolvido por Laura Fernanda.
+				DESENVOLVIDO POR ERONILDO JUNIOR, GIUSEPPE SOUZA, HELOISA MENDONÇA E LAURA SILVA. 
 			</p>
 
 			<button on:click={() => screen = 'menu'}>
